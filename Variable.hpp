@@ -1,28 +1,21 @@
-#include <utility>
-
 #pragma once
 
-enum class types
-{
-	String,
-	Int,
-	Uint,
-	Float,
-	Bool,
-};
+#include "ClassDef.h"
 
 class Variable
 {
 private:
-	const types type;
+	const std::string type;
 	std::string value;
 	bool constant;
 
 public:
-	Variable(types type, std::string value, bool constant)
-	: type(type), value(std::move(value)), constant(constant) {}
+	const static std::string types[];
 
-	types getType() const
+	Variable(std::string type, std::string value, bool constant)
+	: type(std::move(type)), value(std::move(value)), constant(constant) {}
+
+	[[nodiscard]] std::string getType() const
 	{ return type; }
 
 	std::string& getStringValue()
@@ -49,4 +42,9 @@ public:
 			exit(1);
 		}
 	}
+
+	ClassDef getClassValue()
+	{ return ClassDef(value); }
 };
+
+const std::string Variable::types[] = { "String", "Int", "Uint", "Float", "Bool", "ClassDef", "ClassInstance", "Function" };
