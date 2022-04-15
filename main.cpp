@@ -12,6 +12,5 @@ int main(int argc, char** args)
 
 	std::fstream input(args[1]);
 
-
 	return 0;
 }
