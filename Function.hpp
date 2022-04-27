@@ -11,10 +11,7 @@ private:
 	std::string returnType;
 
 public:
-	explicit Function(const std::string& functionInfo)
-	{
-
-	}
+	explicit Function(std::string &name, std::string &parameterInfo, std::string &body, std::string &returnType);
 
 	[[nodiscard]] std::string getName() const
 	{ return name; }

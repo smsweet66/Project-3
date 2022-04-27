@@ -1,56 +1,43 @@
 #pragma once
 
 #include "pch.hpp"
-#include "GlobalInfo.hpp"
-
-std::string evaluate(std::string expression)
-{
-	if(expression[0] == '(')
-		expression = expression.substr(1, expression.length() - 2);
-
-	auto substrings = split(expression);
-	for(int i=0; i<substrings.size(); i++)
-	{
-
-	}
-
-}
-
-std::string add(std::string a, std::string b)
-{
-	return a + b;
-}
 
 class Variable
 {
 private:
+	std::string name;
 	std::string type;
 	std::string value;
-	bool constant;
+
+	static std::string add(std::string a, std::string b);
 
 public:
-	Variable(std::string type, std::string value, bool constant)
-	: type(std::move(type)), value(std::move(value)), constant(constant) {}
+	Variable(std::string &line, GlobalInfo &globals);
 
-	Variable(std::string input, GlobalInfo &globals);
+	Variable(std::vector<std::string> lineInfo, GlobalInfo &globals);
 
 	[[nodiscard]] std::string getType() const
 	{ return type; }
 
-	std::string& getStringValue()
+	[[nodiscard]] std::string getStringValue() const
 	{ return value; }
 
-	long getIntValue()
+	[[nodiscard]] long getIntValue() const
 	{ return std::stol(value); }
 
-	unsigned long getUIntValue()
+	[[nodiscard]] unsigned long getUIntValue() const
 	{ return std::stoul(value); }
 
-	double getFloatValue()
+	[[nodiscard]] double getFloatValue() const
 	{ return std::stod(value); }
 
-	bool getBoolValue();
+	[[nodiscard]] bool getBoolValue() const;
 
-	ClassDef getClassValue()
-	{ return ClassDef(value); }
+//	ClassDef getClassValue()
+//	{ return ClassDef(value); }
+
+	[[nodiscard]] std::string getName() const
+	{ return name; }
+
+	static std::string evaluate(std::string line, GlobalInfo &globals);
 };

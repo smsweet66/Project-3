@@ -7,9 +7,10 @@
 #include <iostream>
 #include <fstream>
 #include <unordered_map>
+#include <list>
 
-#include "Variable.hpp"
 #include "Function.hpp"
 #include "ClassDef.hpp"
 #include "GlobalInfo.hpp"
 #include "helperFunctions.hpp"
+#include "Variable.hpp"

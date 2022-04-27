@@ -5,19 +5,21 @@
 class GlobalInfo
 {
 private:
-	std::unordered_map<std::string, Variable&> variables;
-	std::unordered_map<std::string, ClassDef&> classes;
-	std::unordered_map<std::string, std::list<Function>> functions;
+	std::vector<std::unordered_map<std::string, Variable>> variables;
+	std::vector<std::unordered_map<std::string, ClassDef>> classes;
+	std::vector<std::unordered_map<std::string, std::list<Function>>> functions;
 
 public:
-	GlobalInfo() = default;
+	GlobalInfo()
+	: variables(1), classes(1), functions(1) {}
 
-	void addVariable(std::string line, bool constant);
+	void addVariable(const Variable& var);
 
-	void addClassDef(const std::string& line);
+	void addClassDef(const ClassDef& classDef);
 
-	void addFunction(const std::string& line);
+	void addFunction(const Function& function);
 
-	bool containsVariable(const std::string& name)
-	{ return variables.find(name) != variables.end(); }
+	void increaseScope();
+
+	void decreaseScope();
 };

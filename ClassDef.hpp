@@ -10,11 +10,9 @@ private:
 	std::vector<std::pair<std::string, Function>> methods;
 
 public:
-	//TODO needs proper input reading
-	explicit ClassDef(const std::string& input)
-	{
+	ClassDef() = default;
 
-	}
+	explicit ClassDef(const std::string& name, const std::string& body);
 
 	[[nodiscard]] std::string getName() const
 	{ return name; }
