@@ -6,7 +6,6 @@ int main(int argc, char** args)
 		std::cout << "Usage: " << args[0] << " input.c!";
 
 	std::fstream input(args[1]);
-	GlobalInfo globals;
 
 	return 0;
 }
