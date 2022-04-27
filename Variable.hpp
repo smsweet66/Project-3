@@ -48,5 +48,5 @@ public:
 
 	Variable& operator=(const Variable &other) = default;
 
-	static std::string evaluate(std::string line);
+	static std::string evaluate(std::string line, int minScope = 0);
 };

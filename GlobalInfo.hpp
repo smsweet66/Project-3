@@ -14,9 +14,11 @@ public:
 
 	static void assignVariable(const std::string& name, std::string &line);
 
-	static Variable& getVariable(const std::string& name);
+	static Variable& getVariable(const std::string& name, int minScope = 0);
 
 	static void addClassDef(const ClassDef& classDef);
+
+	static ClassDef& getClassDef(const std::string& name, int minScope = 0);
 
 	static void addFunction(const Function& function);
 
@@ -24,5 +26,8 @@ public:
 
 	static void decreaseScope();
 
-	static bool isVariable(const std::string& name);
+	static int getScope()
+	{ return variables.size(); }
+
+	static bool isVariable(const std::string& name, int minScope = 0);
 };

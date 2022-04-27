@@ -21,4 +21,6 @@ public:
 	 */
 	bool operator==(const Function& other) const
 	{ return parameterInfo == other.parameterInfo; }
+
+	bool matches(const std::string &name, const std::vector<std::string> parameterTypes) const;
 };

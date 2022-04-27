@@ -8,6 +8,7 @@
 #include <fstream>
 #include <unordered_map>
 #include <list>
+#include <algorithm>
 
 #include "Function.hpp"
 #include "ClassDef.hpp"

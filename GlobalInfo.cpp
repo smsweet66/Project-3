@@ -63,20 +63,65 @@ void GlobalInfo::decreaseScope()
 	functions.pop_back();
 }
 
-bool GlobalInfo::isVariable(const std::string &name)
+bool GlobalInfo::isVariable(const std::string &name, int minScope)
 {
-	for(auto& scope : variables)
-		if(scope.find(name) != scope.end())
+	if(minScope == 0)
+	{
+		for(auto &scope: variables)
+			if(scope.find(name) != scope.end())
+				return true;
+	}
+	else
+	{
+		for(int i = minScope; i < variables.size(); i++)
+			if(variables[i].find(name) != variables[i].end())
+				return true;
+
+		if(variables[0].find(name) != variables[0].end())
 			return true;
+	}
 
 	return false;
 }
 
-Variable &GlobalInfo::getVariable(const std::string &name)
+Variable &GlobalInfo::getVariable(const std::string &name, int minScope)
 {
-	for(auto& scope : variables)
-		if(scope.find(name) != scope.end())
-			return scope[name];
+	if(minScope == 0)
+	{
+		for(auto &scope: variables)
+			if(scope.find(name) != scope.end())
+				return scope[name];
+	}
+	else
+	{
+		for(int i = minScope; i < variables.size(); i++)
+			if(variables[i].find(name) != variables[i].end())
+				return variables[i][name];
+
+		if(variables[0].find(name) != variables[0].end())
+			return variables[0][name];
+	}
 
 	throw std::runtime_error("Variable " + name + " does not exist");
+}
+
+ClassDef& GlobalInfo::getClassDef(const std::string &name, int minScope)
+{
+	if(minScope == 0)
+	{
+		for(auto &scope: classes)
+			if(scope.find(name) != scope.end())
+				return scope[name];
+	}
+	else
+	{
+		for(int i = minScope; i < classes.size(); i++)
+			if(classes[i].find(name) != classes[i].end())
+				return classes[i][name];
+
+		if(classes[0].find(name) != classes[0].end())
+			return classes[0][name];
+	}
+
+	throw std::runtime_error("Class " + name + " does not exist");
 }
