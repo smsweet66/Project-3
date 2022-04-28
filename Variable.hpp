@@ -26,13 +26,7 @@ public:
 	[[nodiscard]] std::string getStringValue() const
 	{ return value; }
 
-	[[nodiscard]] long getIntValue() const
-	{ return std::stol(value); }
-
-	[[nodiscard]] unsigned long getUIntValue() const
-	{ return std::stoul(value); }
-
-	[[nodiscard]] double getFloatValue() const
+	[[nodiscard]] double getNumValue() const
 	{ return std::stod(value); }
 
 	[[nodiscard]] bool getBoolValue() const;

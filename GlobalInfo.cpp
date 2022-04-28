@@ -125,3 +125,24 @@ ClassDef& GlobalInfo::getClassDef(const std::string &name, int minScope)
 
 	throw std::runtime_error("Class " + name + " does not exist");
 }
+
+bool GlobalInfo::isClass(const std::string &name, int minScope)
+{
+	if(minScope == 0)
+	{
+		for(auto &scope: classes)
+			if(scope.find(name) != scope.end())
+				return true;
+	}
+	else
+	{
+		for(int i = minScope; i < classes.size(); i++)
+			if(classes[i].find(name) != classes[i].end())
+				return true;
+
+		if(classes[0].find(name) != classes[0].end())
+			return true;
+	}
+
+	return false;
+}

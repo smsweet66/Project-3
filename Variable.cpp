@@ -87,7 +87,18 @@ std::string Variable::evaluate(std::string expression, int minScope)
 			if(substrings[i] == "." && GlobalInfo::isVariable(substrings[i-1], minScope))
 			{
 				Variable& instance = GlobalInfo::getVariable(substrings[i-1], minScope);
-				if(GlobalInfo::getClassDef(instance.getType()).)
+				if(GlobalInfo::isClass(instance.getType()))
+				{
+					ClassDef& classDef = GlobalInfo::getClassDef(instance.getType());
+					std::string methodName = substrings[i+1];
+					std::string parametersRaw = substrings[i+2];
+					std::vector<std::string> parameters = split(parametersRaw);
+				}
+				else
+				{
+					std::cout << "variable " << substrings[i-1] << " is not an instance of a class" << std::endl;
+					exit(1);
+				}
 			}
 		}
 	}

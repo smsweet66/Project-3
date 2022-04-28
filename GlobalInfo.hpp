@@ -30,4 +30,6 @@ public:
 	{ return variables.size(); }
 
 	static bool isVariable(const std::string& name, int minScope = 0);
+
+	static bool isClass(const std::string& name, int minScope = 0);
 };
