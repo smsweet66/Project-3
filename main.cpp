@@ -35,8 +35,18 @@ int main(int argc, char** args)
 	fileText = replaceAll(replaceAll(fileText, "(", " ( "), ")", " ) ");
 
 	mainLogger.log("Parsing file: %s", args[1]);
-	for(const auto& line : lineSplit(fileText))
-		Variable::evaluate(line);
+	auto lines = lineSplit(fileText);
+	for(int i=0; i<lines.size(); i++)
+	{
+		if(lines[i].substr(0, 2) == "if" && i + 1 < lines.size() && lines[i+1].substr(0,4) == "else")
+		{
+			Variable::evaluate(lines[i] + " " + lines[i + 1]);
+			i++;
+		}
+		else
+			Variable::evaluate(lines[i]);
+
+	}
 
 	return 0;
 }

@@ -75,12 +75,14 @@ std::string Variable::evaluate(std::string expression, int minScope)
 
 		return "return " + evaluate(rhs, minScope);
 	}
-	else if(substrings.size() == 1)
+	else if(substrings.size() == 1 && substrings[0][0] != '{')
 	{
 		if(GlobalInfo::isVariable(substrings[0]))
 			return GlobalInfo::getVariable(substrings[0]).value;
-
-		else return substrings[0];
+		else if(substrings[0][0] == '(')
+			return evaluate(substrings[0], minScope);
+		else
+			return substrings[0];
 	}
 	else if(substrings[0] == "var")
 	{
@@ -98,8 +100,8 @@ std::string Variable::evaluate(std::string expression, int minScope)
 		std::string result = evaluate(substrings[1], minScope);
 		if(result == "true")
 			return evaluate(substrings[2], minScope);
-		else if(result == "false" && substrings.size() == 4)
-			return evaluate(substrings[3], minScope);
+		else if(result == "false" && substrings.size() == 5)
+			return evaluate(substrings[4], minScope);
 		else if(result == "false" && substrings.size() == 3)
 			return "";
 		else
@@ -132,6 +134,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 		GlobalInfo::increaseScope();
 		for(const auto& line : lineSplit(substrings[0].substr(1, substrings[0].length() - 2)))
 		{
+			logger.log("Evaluating line: " + line);
 			if(!line.empty())
 			{
 				auto returnStrings = split(evaluate(line, minScope));
