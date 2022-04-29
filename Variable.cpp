@@ -1,11 +1,15 @@
-#include "Variable.hpp"
+#include "GlobalInfo.hpp"
+#include "helperFunctions.hpp"
 
-#include <utility>
+#include <iostream>
+
+Logger Variable::logger("Variable");
 
 Variable::Variable(std::string line)
 {
+	logger.log("Creating anonymous variable from line: " + line);
 	if(line.empty())
-		this->type == "NONE";
+		this->type = "NONE";
 	else if(line[0] == '\"')
 	{
 		line = line.substr(1, line.length() - 2);
@@ -15,7 +19,7 @@ Variable::Variable(std::string line)
 	else if(isFloat(line))
 	{
 		this->type = "num";
-		this->value = line;
+		this->value = std::to_string(stod(line));
 	}
 	else if(GlobalInfo::isClass(split(line)[0]))
 	{
@@ -27,42 +31,68 @@ Variable::Variable(std::string line)
 		this->type = "bool";
 		this->value = line;
 	}
-	else if(line[0] == '[' && line[line.length() - 1] == ']')
+	else
 	{
-		std::string listContents = line.substr(1, line.length() - 2);
-		std::vector<std::string> listContentsVector = split(listContents);
-		Variable var(listContentsVector[0]);
-		this->type = "[" + var.type + "]";
-		this->value = line;
+		logger.error("Unknown variable type: " + line);
+		exit(1);
 	}
 }
 
-Variable::Variable(const std::vector<std::string> &lineInfo)
+Variable::Variable(std::string name, const std::string& type, std::string value)
 {
-	//TODO
-}
-
-bool Variable::getBoolValue() const
-{
-	if(value == "true")
-		return true;
-	else if(value == "false")
-		return false;
+	std::string builtIns[] = {"string", "num", "bool"};
+	if(std::find(std::begin(builtIns), std::end(builtIns), type) != std::end(builtIns) || GlobalInfo::isClass(type))
+	{
+		this->name = std::move(name);
+		this->type = type;
+		this->value = std::move(value);
+	}
 	else
 	{
-		std::cout << "boolean value is wrong, expected true or false, got " << value << " instead" << std::endl;
+		logger.error("Unknown variable type: " + type);
 		exit(1);
 	}
 }
 
 std::string Variable::evaluate(std::string expression, int minScope)
 {
+	logger.log("Evaluating: " + expression);
 	if(expression[0] == '(' && expression[expression.size() - 1] == ')')
 		expression = expression.substr(1, expression.length() - 2);
 
 	auto substrings = split(expression);
-	if(substrings[0] == "var")  //TODO change this section to actually evaluate rhs
-		GlobalInfo::addVariable(Variable(std::vector<std::string>(substrings.begin() + 1, substrings.end())));
+	logger.log("expression split into substrings");
+	for(auto& substring : substrings)
+		logger.log("Substrings: " + substring);
+
+	if(substrings.size() == 1 && substrings[0] == "return")
+		return "return";
+	else if(substrings.size() >= 2 && substrings[0] == "return")
+	{
+		std::string rhs = substrings[1];
+		for(int i = 2; i < substrings.size(); i++)
+			rhs += " " + substrings[i];
+
+		return "return " + evaluate(rhs, minScope);
+	}
+	else if(substrings.size() == 1)
+	{
+		if(GlobalInfo::isVariable(substrings[0]))
+			return GlobalInfo::getVariable(substrings[0]).value;
+
+		else return substrings[0];
+	}
+	else if(substrings[0] == "var")
+	{
+		std::string rhs = substrings[5];
+		for(int i = 6; i < substrings.size(); i++)
+			rhs += " " + substrings[i];
+
+		std::string value = evaluate(rhs, minScope);
+		GlobalInfo::addVariable(Variable(substrings[1], substrings[3], value));
+
+		return value;
+	}
 	else if(substrings[0] == "if")
 	{
 		std::string result = evaluate(substrings[1], minScope);
@@ -74,19 +104,46 @@ std::string Variable::evaluate(std::string expression, int minScope)
 			return "";
 		else
 		{
-			std::cout << "boolean value is wrong, expected true or false, got " << substrings[1] << " instead" << std::endl;
+			logger.error("Unknown if statement: " + substrings[1]);
 			exit(1);
 		}
 	}
+	else if(substrings.size() >= 2 && substrings[0] == "print")
+	{
+		std::string rhs = substrings[1];
+		for(int i = 2; i < substrings.size(); i++)
+			rhs += " " + substrings[i];
+
+		std::cout << evaluate(rhs, minScope) << std::endl;
+		return "";
+	}
 	else if(substrings.size() == 5 && substrings[0] == "def")
+	{
 		GlobalInfo::addFunction(Function(substrings[1], substrings[2], substrings[4], substrings[3]));
+		return "";
+	}
 	else if(substrings.size() == 3 && substrings[0] == "class")
+	{
 		GlobalInfo::addClassDef(ClassDef(substrings[1], substrings[2]));
+		return "";
+	}
 	else if(substrings[0][0] == '{')
 	{
 		GlobalInfo::increaseScope();
-		evaluate(substrings[0].substr(1, substrings[0].length() - 2), minScope);
+		for(const auto& line : lineSplit(substrings[0].substr(1, substrings[0].length() - 2)))
+		{
+			if(!line.empty())
+			{
+				auto returnStrings = split(evaluate(line, minScope));
+				if(returnStrings.size() == 1 && returnStrings[0] == "return")
+					return "return";
+				else if(returnStrings.size() == 2 && returnStrings[0] == "return")
+					return returnStrings[1];
+			}
+		}
 		GlobalInfo::decreaseScope();
+
+		return "";
 	}
 	else if(substrings.size() > 2 && substrings[1] == "=")
 	{
@@ -118,19 +175,19 @@ std::string Variable::evaluate(std::string expression, int minScope)
 				}
 				else
 				{
-					std::cout << "class " << GlobalInfo::getVariable(lhs, minScope).getType() << " does not have a member named " << rhs << std::endl;
+					logger.error("Class member not found: " + rhs);
 					exit(1);
 				}
 			}
 			else
 			{
-				std::cout << "variable " << lhs << " does not exist" << std::endl;
+				logger.error("Class instance not found: " + lhs);
 				exit(1);
 			}
 		}
 		else
 		{
-			std::cout << "variable " << substrings[0] << " is not defined" << std::endl;
+			logger.error("Variable not found: " + substrings[0]);
 			exit(1);
 		}
 	}
@@ -138,7 +195,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 	{
 		enum class States
 		{
-			functionCall,   // handles function calls, variable access, and list access
+			functionCall,   // handles function calls and variable access
 			multiplication, // handles multiplication and division
 			addition,       // handles addition and subtraction
 			boolean        // handles boolean operators
@@ -150,8 +207,9 @@ std::string Variable::evaluate(std::string expression, int minScope)
 		{
 			for(int i = 0; i < substrings.size(); i++)
 			{
-				if(state == States::functionCall)
+				switch(state)
 				{
+				case States::functionCall:
 					if(substrings[i] == "." && GlobalInfo::isVariable(substrings[i - 1], minScope))
 					{
 						Variable &instance = GlobalInfo::getVariable(substrings[i - 1], minScope);
@@ -226,9 +284,213 @@ std::string Variable::evaluate(std::string expression, int minScope)
 							exit(1);
 						}
 					}
+					else if(GlobalInfo::isFunction(substrings[i], minScope))
+					{
+						logger.log("function found: " + substrings[i]);
+						std::string parametersRaw = substrings[i + 1];
+						std::vector<std::string> parameterStringsRaw = split(parametersRaw.substr(1, parametersRaw.size() - 2));
+						std::vector<std::string> parameterStrings;
+						std::string buffer;
+						int paramNum = 0;
+						for(auto &param: parameterStringsRaw)
+						{
+							if(param == ",")
+							{
+								parameterStrings.push_back(buffer);
+								buffer = "";
+								paramNum++;
+							}
+							else
+								buffer += " " + param;
+						}
+
+						parameterStrings.push_back(buffer);
+						std::vector<Variable> parameters;
+						for(auto &param: parameterStrings)
+						{
+							logger.log("parameter: " + param);
+							parameters.emplace_back(Variable(evaluate(param, minScope)));
+						}
+
+						std::vector<std::string> parameterTypes;
+						for(auto &param: parameters)
+						{
+							logger.log("parameter type: " + param.getType());
+							parameterTypes.emplace_back(param.getType());
+						}
+
+						logger.log("running function: %s with %d parameters", substrings[i].c_str(), parameterTypes.size());
+						return GlobalInfo::getFunction(substrings[i], parameterTypes, minScope).run(parameters);
+					}
+					break;
+
+				case States::multiplication:
+					if(substrings[i] == "*")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = evaluate(left, minScope);
+						right = evaluate(right, minScope);
+						logger.log("found * operator, left: %s, right: %s", left.c_str(), right.c_str());
+
+						substrings[i] = std::to_string(std::stod(left) * std::stod(right));
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+					else if(substrings[i] == "/")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+						logger.log("found / operator, left: %s, right: %s", left.c_str(), right.c_str());
+
+						substrings[i] = std::to_string(std::stod(left) / std::stod(right));
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+
+					break;
+				case States::addition:
+					if(substrings[i] == "+")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+						logger.log("found + operator, left %s, right %s", left.c_str(), right.c_str());
+
+						substrings[i] = std::to_string(std::stod(left) + std::stod(right));
+						logger.log("result is %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+					else if(substrings[i] == "-")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+						logger.log("found - operator, left: %s, right: %s", left.c_str(), right.c_str());
+
+						substrings[i] = std::to_string(std::stod(left) - std::stod(right));
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+
+					break;
+				case States::boolean:
+					if(substrings[i] == "!")
+					{
+						std::string right = substrings[i + 1];
+						right = evaluate(right, minScope);
+
+						logger.log("found ! operator, right: %s", right.c_str());
+						if(right == "true")
+						{
+							substrings[i + 1] = "false";
+							substrings.erase(substrings.begin() + i);
+						}
+						else if(right == "false")
+						{
+							substrings[i + 1] = "true";
+							substrings.erase(substrings.begin() + i);
+						}
+						else
+						{
+							std::cout << "boolean operator ! can only be used on a boolean" << std::endl;
+							exit(1);
+						}
+					}
+					else if(substrings[i] == "!=")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+
+						logger.log("found != operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(left == right)
+							substrings[i] = "false";
+						else
+							substrings[i] = "true";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+					else if(substrings[i] == "==")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+
+						logger.log("found == operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(left == right)
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+					else if(substrings[i] == "&&")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = evaluate(left, minScope);
+						right = evaluate(right, minScope);
+
+						logger.log("found && operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(left == "true" && right == "true")
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+					else if(substrings[i] == "||")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = evaluate(left, minScope);
+						right = evaluate(right, minScope);
+
+						logger.log("found || operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(left == "true" || right == "true")
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+					}
+
+					break;
+
+				default:
+					break;
 				}
 			}
 		}
+
+		return substrings[0];
 	}
 }
 

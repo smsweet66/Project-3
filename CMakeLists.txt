@@ -3,5 +3,6 @@ project(Project-3)
 
 set(CMAKE_CXX_STANDARD 20)
 
-add_executable(${PROJECT_NAME} main.cpp Variable.cpp GlobalInfo.cpp Function.cpp ClassDef.cpp)
-target_precompile_headers(${PROJECT_NAME} PUBLIC pch.hpp)
+add_executable(${PROJECT_NAME} main.cpp Variable.cpp ClassDef.cpp Function.cpp GlobalInfo.cpp Logger.cpp)
+
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/input.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

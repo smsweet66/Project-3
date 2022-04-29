@@ -1,6 +1,6 @@
+#include <stdexcept>
 #include "ClassDef.hpp"
-
-#include <utility>
+#include "helperFunctions.hpp"
 
 ClassDef::ClassDef(std::string name, const std::string &body)
 : name(std::move(name))

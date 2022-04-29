@@ -1,6 +1,9 @@
 #pragma once
 
-#include "pch.hpp"
+#include <string>
+#include <utility>
+#include <iostream>
+#include "Logger.hpp"
 
 class Variable
 {
@@ -8,6 +11,7 @@ private:
 	std::string name;
 	std::string type;
 	std::string value;
+	static Logger logger;
 
 public:
 	Variable() = default;
@@ -18,18 +22,13 @@ public:
 	Variable(std::string line);
 
 	// Used for creating a named variable
-	Variable(const std::vector<std::string> &lineInfo);
+	Variable(std::string name, const std::string& type, std::string value);
 
 	[[nodiscard]] std::string getType() const
 	{ return type; }
 
-	[[nodiscard]] std::string getStringValue() const
+	std::string toString() const
 	{ return value; }
-
-	[[nodiscard]] double getNumValue() const
-	{ return std::stod(value); }
-
-	[[nodiscard]] bool getBoolValue() const;
 
 	void setValue(std::string &val)
 	{ value = val; }
@@ -40,6 +39,9 @@ public:
 
 	[[nodiscard]] std::string getName() const
 	{ return name; }
+
+	void setName(const std::string &newName)
+	{ name = newName; }
 
 	Variable& operator=(const Variable &other) = default;
 

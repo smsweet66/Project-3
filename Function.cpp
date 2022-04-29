@@ -1,7 +1,14 @@
+#include <sstream>
+#include <iostream>
 #include "Function.hpp"
+#include "GlobalInfo.hpp"
+#include "helperFunctions.hpp"
+
+Logger Function::logger = Logger("Function");
 
 bool Function::matches(const std::string &name, const std::vector<std::string> parameterTypes) const
 {
+	logger.log("Looking for a function with name " + name);
 	if (name != this->name)
 		return false;
 
@@ -20,26 +27,34 @@ bool Function::matches(const std::string &name, const std::vector<std::string> p
 Function::Function(std::string &name, std::string &parameterInfo, std::string &body, std::string &returnType)
 : name(name), body(body.substr(1, body.size() - 2)), returnType(returnType)
 {
-	std::stringstream ss(parameterInfo);
-	std::string token;
-	while (std::getline(ss, token, ','))
+	logger.log("Generating function " + name);
+	auto parameterInfoSplit = split(parameterInfo.substr(1, parameterInfo.size() - 2));
+	for(int i=0; i<parameterInfoSplit.size(); i++)
 	{
-		std::stringstream ss2(token);
-		std::string type;
-		std::string varName;
-		std::getline(ss2, varName, ':');
-		std::getline(ss2, type, ' ');
-		this->parameterInfo.emplace_back(varName, type);
+		if(parameterInfoSplit[i] != ":")
+			continue;
+		else
+		{
+			std::string varName = parameterInfoSplit[i-1];
+			std::string type = parameterInfoSplit[i+1];
+			logger.log("Adding parameter " + varName + " of type " + type);
+			this->parameterInfo.emplace_back(varName, type);
+		}
 	}
 }
 
 // Function has already been matched, so check is not required
-std::string Function::run(const std::vector<Variable> &parameterValues) const
+std::string Function::run(std::vector<Variable> parameterValues) const
 {
+	logger.log("Running function " + name);
+	for(size_t i=0; i<parameterValues.size(); i++)
+		parameterValues[i].setName(parameterInfo[i].first);
+
 	GlobalInfo::increaseScope();
 	for(auto &parameter : parameterValues)
 		GlobalInfo::addVariable(parameter);
 
+	logger.log("Running function body");
 	for(auto &statement : lineSplit(body))
 	{
 		if(statement.empty())

@@ -1,6 +1,8 @@
 #pragma once
 
-#include "pch.hpp"
+#include <string>
+#include <vector>
+#include "Variable.hpp"
 
 class Function
 {
@@ -9,13 +11,14 @@ private:
 	std::vector<std::pair<std::string, std::string>> parameterInfo;
 	std::string body;
 	std::string returnType;
+	static Logger logger;
 
 public:
 	explicit Function(std::string &name, std::string &parameterInfo, std::string &body, std::string &returnType);
 
 	[[nodiscard]] bool matches(const std::string &name, std::vector<std::string> parameterTypes) const;
 
-	std::string run(const std::vector<Variable> &parameterValues) const;
+	std::string run(std::vector<Variable> parameterValues) const;
 
 	[[nodiscard]] std::string getName() const
 	{ return name; }

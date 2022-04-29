@@ -1,6 +1,8 @@
 #pragma once
 
-#include "pch.hpp"
+#include <string>
+#include <vector>
+#include "Function.hpp"
 
 class ClassDef
 {
