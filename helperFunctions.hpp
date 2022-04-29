@@ -110,3 +110,13 @@ std::vector<std::string> lineSplit(const std::string &input)
 
 	return result;
 }
+
+bool isFloat(const std::string& s)
+{
+	try
+	{
+		std::stod(s);
+		return true;
+	} catch(...)
+	{ return false; }
+}

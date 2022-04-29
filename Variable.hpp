@@ -9,15 +9,15 @@ private:
 	std::string type;
 	std::string value;
 
-	static std::string add(std::string a, std::string b);
-
 public:
 	Variable() = default;
 
 	Variable(const Variable &other) = default;
 
-	Variable(std::string &line);
+	// Used for creating an anonymous variable
+	Variable(std::string line);
 
+	// Used for creating a named variable
 	Variable(const std::vector<std::string> &lineInfo);
 
 	[[nodiscard]] std::string getType() const
@@ -34,8 +34,9 @@ public:
 	void setValue(std::string &val)
 	{ value = val; }
 
-//	ClassDef getClassValue()
-//	{ return ClassDef(value); }
+	std::string getClassVariable(const std::string& varName);
+
+	void setClassVariable(const std::string& varName, std::string newValue);
 
 	[[nodiscard]] std::string getName() const
 	{ return name; }
