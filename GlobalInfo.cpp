@@ -1,7 +1,6 @@
 #include "GlobalInfo.hpp"
 
 std::vector<std::unordered_map<std::string, Variable>> GlobalInfo::variables(1);
-std::vector<std::unordered_map<std::string, ClassDef>> GlobalInfo::classes(1);
 std::vector<std::unordered_map<std::string, std::list<Function>>> GlobalInfo::functions(1);
 
 Logger GlobalInfo::logger = Logger("GlobalInfo");
@@ -21,15 +20,6 @@ void GlobalInfo::assignVariable(const std::string &name, std::string &line)
 	}
 
 	throw std::runtime_error("Variable " + name + " does not exist");
-}
-
-void GlobalInfo::addClassDef(const ClassDef& classDef)
-{
-	for(auto& scope : classes)
-		if(scope.find(classDef.getName()) != scope.end())
-			throw std::runtime_error("Class " + classDef.getName() + " already defined");
-
-	classes.back()[classDef.getName()] = classDef;
 }
 
 void GlobalInfo::addFunction(const Function& function)
@@ -84,14 +74,12 @@ Function& GlobalInfo::getFunction(const std::string &name, const std::vector<std
 void GlobalInfo::increaseScope()
 {
 	variables.emplace_back();
-	classes.emplace_back();
 	functions.emplace_back();
 }
 
 void GlobalInfo::decreaseScope()
 {
 	variables.pop_back();
-	classes.pop_back();
 	functions.pop_back();
 }
 
@@ -135,48 +123,6 @@ Variable &GlobalInfo::getVariable(const std::string &name, int minScope)
 	}
 
 	throw std::runtime_error("Variable " + name + " does not exist");
-}
-
-ClassDef& GlobalInfo::getClassDef(const std::string &name, int minScope)
-{
-	if(minScope == 0)
-	{
-		for(auto &scope: classes)
-			if(scope.find(name) != scope.end())
-				return scope[name];
-	}
-	else
-	{
-		for(int i = minScope; i < classes.size(); i++)
-			if(classes[i].find(name) != classes[i].end())
-				return classes[i][name];
-
-		if(classes[0].find(name) != classes[0].end())
-			return classes[0][name];
-	}
-
-	throw std::runtime_error("Class " + name + " does not exist");
-}
-
-bool GlobalInfo::isClass(const std::string &name, int minScope)
-{
-	if(minScope == 0)
-	{
-		for(auto &scope: classes)
-			if(scope.find(name) != scope.end())
-				return true;
-	}
-	else
-	{
-		for(int i = minScope; i < classes.size(); i++)
-			if(classes[i].find(name) != classes[i].end())
-				return true;
-
-		if(classes[0].find(name) != classes[0].end())
-			return true;
-	}
-
-	return false;
 }
 
 bool GlobalInfo::isFunction(const std::string &name, int minScope)

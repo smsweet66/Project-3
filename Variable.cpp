@@ -21,11 +21,6 @@ Variable::Variable(std::string line)
 		this->type = "num";
 		this->value = std::to_string(stod(line));
 	}
-	else if(GlobalInfo::isClass(split(line)[0]))
-	{
-		this->type = split(line)[0];
-		this->value = line;
-	}
 	else if(line == "false" || line == "true")
 	{
 		this->type = "bool";
@@ -41,7 +36,7 @@ Variable::Variable(std::string line)
 Variable::Variable(std::string name, const std::string& type, std::string value)
 {
 	std::string builtIns[] = {"string", "num", "bool"};
-	if(std::find(std::begin(builtIns), std::end(builtIns), type) != std::end(builtIns) || GlobalInfo::isClass(type))
+	if(std::find(std::begin(builtIns), std::end(builtIns), type) != std::end(builtIns))
 	{
 		this->name = std::move(name);
 		this->type = type;
@@ -121,11 +116,6 @@ std::string Variable::evaluate(std::string expression, int minScope)
 		GlobalInfo::addFunction(Function(substrings[1], substrings[2], substrings[4], substrings[3]));
 		return "";
 	}
-	else if(substrings.size() == 3 && substrings[0] == "class")
-	{
-		GlobalInfo::addClassDef(ClassDef(substrings[1], substrings[2]));
-		return "";
-	}
 	else if(substrings[0][0] == '{')
 	{
 		GlobalInfo::increaseScope();
@@ -171,39 +161,6 @@ std::string Variable::evaluate(std::string expression, int minScope)
 			GlobalInfo::getVariable(substrings[0], minScope).setValue(rhs);
 			return rhs;
 		}
-		else if(substrings[0].find('.') != std::string::npos)
-		{
-			std::string lhs = substrings[0].substr(0, substrings[0].find('.'));     //class instance name
-			std::string rhs = substrings[0].substr(substrings[0].find('.') + 1);    //class member name
-			if(GlobalInfo::isVariable(lhs, minScope))
-			{
-				if(GlobalInfo::getClassDef(GlobalInfo::getVariable(lhs, minScope).getType()).containsVariable(rhs))
-				{
-					std::string rhsValue = substrings[2];
-					for(int i = 3; i < substrings.size(); i++)
-						rhsValue += " " + substrings[i];
-
-					rhsValue = evaluate(rhsValue, minScope);
-					GlobalInfo::getVariable(lhs, minScope).setClassVariable(rhs, rhsValue);
-					return rhsValue;
-				}
-				else
-				{
-					logger.error("Class member not found: " + rhs);
-					exit(1);
-				}
-			}
-			else
-			{
-				logger.error("Class instance not found: " + lhs);
-				exit(1);
-			}
-		}
-		else
-		{
-			logger.error("Variable not found: " + substrings[0]);
-			exit(1);
-		}
 	}
 	else    //not defining anything, so it's just a normal expression
 	{
@@ -224,81 +181,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 				switch(state)
 				{
 				case States::functionCall:
-					if(substrings[i] == "." && GlobalInfo::isVariable(substrings[i - 1], minScope))
-					{
-						Variable &instance = GlobalInfo::getVariable(substrings[i - 1], minScope);
-						if(GlobalInfo::isClass(instance.getType()))
-						{
-							ClassDef &classDef = GlobalInfo::getClassDef(instance.getType());
-							std::string methodName = substrings[i + 1];
-							if(classDef.containsVariable(methodName))
-							{
-								std::vector<std::string> newSubstrings;
-								for(int j=0; j<i-1; j++)
-									newSubstrings.push_back(substrings[j]);
-
-								newSubstrings.push_back(instance.getClassVariable(methodName));
-								for(int j=i+2; j<substrings.size(); j++)
-									newSubstrings.push_back(substrings[j]);
-
-								i++;
-							}
-							else
-							{
-								std::string parametersRaw = substrings[i + 2];
-								std::vector<std::string> parameters = split(parametersRaw);
-								std::vector<std::string> evaluatedParameters;
-								int paramNum = 0;
-								for(auto &param: parameters)
-								{
-									if(param == ",")
-										paramNum++;
-									else
-										evaluatedParameters[i] += param;
-								}
-
-								for(auto &param: evaluatedParameters)
-									param = evaluate(param, minScope);
-
-								std::vector<Variable> params;
-								for(auto &param: evaluatedParameters)
-									params.emplace_back(Variable(param));
-
-								std::vector<std::string> parameterTypes;
-								for(auto &param: params)
-									parameterTypes.emplace_back(param.getType());
-								if(classDef.containsMethod(methodName, parameterTypes))
-								{
-									Function &method = classDef.getMethod(methodName, parameterTypes);
-									std::string returnValue = method.run(params);
-
-									// replaces the function call with the return value
-									std::vector<std::string> newSubstrings;
-									for(int j = 0; j < i; j++)
-										newSubstrings.emplace_back(substrings[j]);
-									newSubstrings.emplace_back(returnValue);
-									for(int j = i + 3; j < substrings.size(); j++)
-										newSubstrings.emplace_back(substrings[j]);
-
-									substrings = newSubstrings;
-								}
-								else
-								{
-									std::cout << "method " << methodName << " is not defined for class "
-									          << instance.getType()
-									          << std::endl;
-									exit(1);
-								}
-							}
-						}
-						else
-						{
-							std::cout << "variable " << substrings[i - 1] << " is not an instance of a class"
-							          << std::endl;
-							exit(1);
-						}
-					}
-					else if(GlobalInfo::isFunction(substrings[i], minScope))
+					if(GlobalInfo::isFunction(substrings[i], minScope))
 					{
 						logger.log("function found: " + substrings[i]);
 						std::string parametersRaw = substrings[i + 1];
