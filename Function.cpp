@@ -54,25 +54,32 @@ std::string Function::run(std::vector<Variable> parameterValues) const
 	for(auto &parameter : parameterValues)
 		GlobalInfo::addVariable(parameter);
 
-	logger.log("Running function body");
-	for(auto &statement : lineSplit(body))
+	int scope = GlobalInfo::getScope();
+
+	logger.log("Running function body with scope " + std::to_string(scope));
+	auto lines = lineSplit(body);
+	for(int i=0; i<lines.size(); i++)
 	{
-		if(statement.empty())
-			continue;
-		else
+		std::string result;
+		if(lines[i].substr(0, 2) == "if" && i + 1 < lines.size() && lines[i+1].substr(0,4) == "else")
 		{
-			std::string output = Variable::evaluate(statement, GlobalInfo::getScope());
-			std::vector<std::string> result = split(output);
-			if(result.size() == 2 && result[0] == "return")
-			{
-				GlobalInfo::decreaseScope();
-				return result[1];
-			}
-			else if(result.size() == 1 && result[0] == "continue")
-			{
-				GlobalInfo::decreaseScope();
-				return "";
-			}
+			result = Variable::evaluate(lines[i] + " " + lines[i + 1], scope);
+			i++;
+		}
+		else
+			result = Variable::evaluate(lines[i], scope);
+
+		auto resultSubstrings = split(result);
+		if(resultSubstrings.size() == 2 && resultSubstrings[0] == "return")
+		{
+			logger.log("Returning from function " + name);
+			GlobalInfo::decreaseScope();
+			return resultSubstrings[1];
+		}
+		else if(resultSubstrings.size() == 1 && resultSubstrings[0] == "return")
+		{
+			GlobalInfo::decreaseScope();
+			return "";
 		}
 	}
 

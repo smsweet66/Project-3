@@ -61,14 +61,11 @@ std::string Variable::evaluate(std::string expression, int minScope)
 		expression = expression.substr(1, expression.length() - 2);
 
 	auto substrings = split(expression);
-	logger.log("expression split into substrings");
-	for(auto& substring : substrings)
-		logger.log("Substrings: " + substring);
-
 	if(substrings.size() == 1 && substrings[0] == "return")
 		return "return";
 	else if(substrings.size() >= 2 && substrings[0] == "return")
 	{
+		logger.log("Returning: " + expression);
 		std::string rhs = substrings[1];
 		for(int i = 2; i < substrings.size(); i++)
 			rhs += " " + substrings[i];
@@ -77,8 +74,8 @@ std::string Variable::evaluate(std::string expression, int minScope)
 	}
 	else if(substrings.size() == 1 && substrings[0][0] != '{')
 	{
-		if(GlobalInfo::isVariable(substrings[0]))
-			return GlobalInfo::getVariable(substrings[0]).value;
+		if(GlobalInfo::isVariable(substrings[0], minScope))
+			return GlobalInfo::getVariable(substrings[0], minScope).value;
 		else if(substrings[0][0] == '(')
 			return evaluate(substrings[0], minScope);
 		else
@@ -132,20 +129,34 @@ std::string Variable::evaluate(std::string expression, int minScope)
 	else if(substrings[0][0] == '{')
 	{
 		GlobalInfo::increaseScope();
-		for(const auto& line : lineSplit(substrings[0].substr(1, substrings[0].length() - 2)))
+		auto lines = lineSplit(substrings[0].substr(1, substrings[0].length() - 2));
+		for(int i=0; i<lines.size(); i++)
 		{
-			logger.log("Evaluating line: " + line);
-			if(!line.empty())
+			std::string result;
+			if(lines[i].substr(0, 2) == "if" && i + 1 < lines.size() && lines[i+1].substr(0,4) == "else")
 			{
-				auto returnStrings = split(evaluate(line, minScope));
-				if(returnStrings.size() == 1 && returnStrings[0] == "return")
-					return "return";
-				else if(returnStrings.size() == 2 && returnStrings[0] == "return")
-					return returnStrings[1];
+				result = evaluate(lines[i] + " " + lines[i + 1], minScope);
+				i++;
+			}
+			else
+				result = evaluate(lines[i], minScope);
+
+			auto resultSubstrings = split(result);
+			if(resultSubstrings.size() == 1 && resultSubstrings[0] == "return")
+			{
+				logger.log("Returning from scope: " + std::to_string(GlobalInfo::getScope()));
+				GlobalInfo::decreaseScope();
+				return "return";
+			}
+			else if(resultSubstrings.size() == 2 && resultSubstrings[0] == "return")
+			{
+				logger.log("Returning from scope: " + std::to_string(GlobalInfo::getScope()));
+				GlobalInfo::decreaseScope();
+				return "return " + resultSubstrings[1];
 			}
 		}
-		GlobalInfo::decreaseScope();
 
+		GlobalInfo::decreaseScope();
 		return "";
 	}
 	else if(substrings.size() > 2 && substrings[1] == "=")
@@ -156,7 +167,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 			for(int i = 3; i < substrings.size(); i++)
 				rhs += " " + substrings[i];
 
-			rhs = evaluate(rhs);
+			rhs = evaluate(rhs, minScope);
 			GlobalInfo::getVariable(substrings[0], minScope).setValue(rhs);
 			return rhs;
 		}
@@ -172,7 +183,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 					for(int i = 3; i < substrings.size(); i++)
 						rhsValue += " " + substrings[i];
 
-					rhsValue = evaluate(rhsValue);
+					rhsValue = evaluate(rhsValue, minScope);
 					GlobalInfo::getVariable(lhs, minScope).setClassVariable(rhs, rhsValue);
 					return rhsValue;
 				}
@@ -323,7 +334,8 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						}
 
 						logger.log("running function: %s with %d parameters", substrings[i].c_str(), parameterTypes.size());
-						return GlobalInfo::getFunction(substrings[i], parameterTypes, minScope).run(parameters);
+						substrings[i] = GlobalInfo::getFunction(substrings[i], parameterTypes, minScope).run(parameters);
+						substrings.erase(substrings.begin() + i + 1);
 					}
 					break;
 

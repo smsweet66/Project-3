@@ -3,7 +3,7 @@
 #include "Variable.hpp"
 #include "helperFunctions.hpp"
 
-bool Logger::debug = true;
+bool Logger::debug = false;
 
 int main(int argc, char** args)
 {

@@ -7,15 +7,7 @@ std::vector<std::unordered_map<std::string, std::list<Function>>> GlobalInfo::fu
 Logger GlobalInfo::logger = Logger("GlobalInfo");
 
 void GlobalInfo::addVariable(Variable var)
-{
-	for(auto& scope : variables)
-	{
-		if(scope.find(var.getName()) != scope.end())
-			throw std::runtime_error("Variable " + var.getName() + " already exists");
-	}
-
-	variables.back()[var.getName()] = var;
-}
+{ variables.back()[var.getName()] = var; }
 
 void GlobalInfo::assignVariable(const std::string &name, std::string &line)
 {

@@ -35,7 +35,7 @@ public:
 	static void decreaseScope();
 
 	static size_t getScope()
-	{ return variables.size(); }
+	{ return variables.size() - 1; }
 
 	static bool isVariable(const std::string& name, int minScope = 0);
 
