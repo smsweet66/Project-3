@@ -20,7 +20,7 @@ void Logger::log(std::string msg, ...) const
 
 void Logger::warn(std::string msg, ...) const
 {
-	std::cout << "\033[0;33m" << name << "--Warning: ";
+	std::cout << "\033[0;33m" << name << " Warning: ";
 
 	va_list args;
 	va_start(args, msg);
@@ -33,7 +33,7 @@ void Logger::warn(std::string msg, ...) const
 
 void Logger::error(std::string msg, ...) const
 {
-	std::cout << "\033[0;31m" << name << "----Error: ";
+	std::cout << "\033[0;31m" << name << " Error: ";
 
 	va_list args;
 	va_start(args, msg);

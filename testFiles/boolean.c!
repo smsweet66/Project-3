@@ -1,0 +1,16 @@
+def foo(x: bool) bool
+{
+    return !x;
+}
+
+def bar(x: bool, y: bool) bool
+{
+    return (x && y) || ((!x) && (!y));
+}
+
+print foo(true);
+print foo(false);
+print bar(true, true);
+print bar(true, false);
+print bar(false, true);
+print bar(false, false);

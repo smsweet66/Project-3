@@ -11,13 +11,13 @@ class GlobalInfo
 private:
 	static std::vector<std::unordered_map<std::string, Variable>> variables;
 	static std::vector<std::unordered_map<std::string, std::list<Function>>> functions;
+	static std::array<std::string, 15> reservedWords;
+	static std::array<std::string, 15> operators;
 
 	static Logger logger;
 
 public:
-	static void addVariable(Variable var);
-
-	static void assignVariable(const std::string& name, std::string &line);
+	static void addVariable(const Variable& var);
 
 	static Variable& getVariable(const std::string& name, int minScope = 0);
 

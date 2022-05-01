@@ -1,6 +1,5 @@
 #include "GlobalInfo.hpp"
 #include "helperFunctions.hpp"
-
 #include <iostream>
 
 Logger Variable::logger("Variable");
@@ -12,7 +11,7 @@ Variable::Variable(std::string line)
 		this->type = "NONE";
 	else if(line[0] == '\"')
 	{
-		line = line.substr(1, line.length() - 2);
+		line = line;
 		this->type = "string";
 		this->value = line;
 	}
@@ -52,12 +51,16 @@ Variable::Variable(std::string name, const std::string& type, std::string value)
 std::string Variable::evaluate(std::string expression, int minScope)
 {
 	logger.log("Evaluating: " + expression);
-	if(expression[0] == '(' && expression[expression.size() - 1] == ')')
+	if(expression[0] == '(' && getEndParenthesis(expression, 0) == expression.length() - 1)
 		expression = expression.substr(1, expression.length() - 2);
 
 	auto substrings = split(expression);
 	if(substrings.size() == 1 && substrings[0] == "return")
 		return "return";
+	else if(substrings.size() == 1 && substrings[0] == "break")
+		return "break";
+	else if(substrings.size() == 1 && substrings[0] == "continue")
+		return "continue";
 	else if(substrings.size() >= 2 && substrings[0] == "return")
 	{
 		logger.log("Returning: " + expression);
@@ -102,6 +105,19 @@ std::string Variable::evaluate(std::string expression, int minScope)
 			exit(1);
 		}
 	}
+	else if(substrings[0] == "while")
+	{
+		while(evaluate(substrings[1], minScope) == "true")
+		{
+			std::string result = evaluate(substrings[2], minScope);
+			if(result.find("return") != std::string::npos)
+				return result;
+			else if(result.find("break") != std::string::npos)
+				return "";
+			else if(result.find("continue") != std::string::npos)
+				continue;
+		}
+	}
 	else if(substrings.size() >= 2 && substrings[0] == "print")
 	{
 		std::string rhs = substrings[1];
@@ -137,6 +153,18 @@ std::string Variable::evaluate(std::string expression, int minScope)
 				logger.log("Returning from scope: " + std::to_string(GlobalInfo::getScope()));
 				GlobalInfo::decreaseScope();
 				return "return";
+			}
+			else if(resultSubstrings.size() == 1 && resultSubstrings[0] == "break")
+			{
+				logger.log("Breaking from scope: " + std::to_string(GlobalInfo::getScope()));
+				GlobalInfo::decreaseScope();
+				return "break";
+			}
+			else if(resultSubstrings.size() == 1 && resultSubstrings[0] == "continue")
+			{
+				logger.log("Continuing from scope: " + std::to_string(GlobalInfo::getScope()));
+				GlobalInfo::decreaseScope();
+				return "continue";
 			}
 			else if(resultSubstrings.size() == 2 && resultSubstrings[0] == "return")
 			{
@@ -181,7 +209,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 				switch(state)
 				{
 				case States::functionCall:
-					if(GlobalInfo::isFunction(substrings[i], minScope))
+					if(i + 1 < substrings.size() && substrings[i+1][0] == '(' && GlobalInfo::isFunction(substrings[i], minScope))
 					{
 						logger.log("function found: " + substrings[i]);
 						std::string parametersRaw = substrings[i + 1];
@@ -220,6 +248,11 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						substrings[i] = GlobalInfo::getFunction(substrings[i], parameterTypes, minScope).run(parameters);
 						substrings.erase(substrings.begin() + i + 1);
 					}
+					else if(i + 1 < substrings.size() && substrings[i+1][0] == '(')
+					{
+						logger.error("function call not found: " + substrings[i]);
+						exit(1);
+					}
 					break;
 
 				case States::multiplication:
@@ -236,6 +269,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
 					else if(substrings[i] == "/")
 					{
@@ -250,23 +284,29 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
-
 					break;
+
 				case States::addition:
 					if(substrings[i] == "+")
 					{
 						std::string left = substrings[i - 1];
 						std::string right = substrings[i + 1];
 
-						left = Variable(evaluate(left, minScope)).toString();
-						right = Variable(evaluate(right, minScope)).toString();
+						Variable leftVar = Variable(evaluate(left, minScope));
+						Variable rightVar = Variable(evaluate(right, minScope));
 						logger.log("found + operator, left %s, right %s", left.c_str(), right.c_str());
 
-						substrings[i] = std::to_string(std::stod(left) + std::stod(right));
-						logger.log("result is %s", substrings[i].c_str());
+						if(leftVar.getType() == "string" || rightVar.getType() == "string")
+							substrings[i] = leftVar.toString().substr(0, leftVar.toString().length()-1) + rightVar.toString().substr(1);
+						else
+							substrings[i] = std::to_string(std::stod(leftVar.toString()) + std::stod(rightVar.toString()));
+
+						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
 					else if(substrings[i] == "-")
 					{
@@ -281,9 +321,10 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
-
 					break;
+
 				case States::boolean:
 					if(substrings[i] == "!")
 					{
@@ -324,6 +365,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
 					else if(substrings[i] == "==")
 					{
@@ -342,6 +384,83 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
+					}
+					else if(substrings[i] == "<")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+
+						logger.log("found < operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(std::stod(left) < std::stod(right))
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+						i--;
+					}
+					else if(substrings[i] == ">")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+
+						logger.log("found > operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(std::stod(left) > std::stod(right))
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+						i--;
+					}
+					else if(substrings[i] == "<=")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+
+						logger.log("found <= operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(std::stod(left) <= std::stod(right))
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+						i--;
+					}
+					else if(substrings[i] == ">=")
+					{
+						std::string left = substrings[i - 1];
+						std::string right = substrings[i + 1];
+
+						left = Variable(evaluate(left, minScope)).toString();
+						right = Variable(evaluate(right, minScope)).toString();
+
+						logger.log("found >= operator, left: %s, right: %s", left.c_str(), right.c_str());
+						if(std::stod(left) >= std::stod(right))
+							substrings[i] = "true";
+						else
+							substrings[i] = "false";
+
+						logger.log("result: %s", substrings[i].c_str());
+						substrings.erase(substrings.begin() + i + 1);
+						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
 					else if(substrings[i] == "&&")
 					{
@@ -360,6 +479,7 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
 					else if(substrings[i] == "||")
 					{
@@ -378,8 +498,8 @@ std::string Variable::evaluate(std::string expression, int minScope)
 						logger.log("result: %s", substrings[i].c_str());
 						substrings.erase(substrings.begin() + i + 1);
 						substrings.erase(substrings.begin() + i - 1);
+						i--;
 					}
-
 					break;
 
 				default:
@@ -390,29 +510,21 @@ std::string Variable::evaluate(std::string expression, int minScope)
 
 		return substrings[0];
 	}
+
+	return "";
 }
 
-std::string Variable::getClassVariable(const std::string& varName)
+void Variable::setValue(std::string &val)
 {
-	std::vector<std::string> substrings = split(value);
-	int nameIndex = 0;
-	while(substrings[nameIndex] != varName)
-		nameIndex++;
-
-	return {substrings[nameIndex + 1]};
-}
-
-void Variable::setClassVariable(const std::string &varName, std::string newValue)
-{
-	std::vector<std::string> substrings = split(this->value);
-	int nameIndex = 0;
-	while(substrings[nameIndex] != varName)
-		nameIndex++;
-
-	substrings[nameIndex + 1] = std::move(newValue);
-
-	this->value = "";
-	for(auto &substring : substrings)
-		this->value += substring + " ";
-	this->value.pop_back();
+	if(type == "string" && val[0] == '"')
+		value = val;
+	else if(type == "num" && isFloat(val))
+		value = val;
+	else if(type == "bool" && (val == "true" || val == "false"))
+		value = val;
+	else
+	{
+		logger.error("invalid value for variable %s", name.c_str());
+		exit(1);
+	}
 }

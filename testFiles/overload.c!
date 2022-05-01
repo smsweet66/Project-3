@@ -1,0 +1,27 @@
+def foo(x: num, y: num) num
+{
+    return x + y;
+}
+
+def foo(x: num, y: num, z:num) num
+{
+    return x + y + z;
+}
+
+def foo(x: string, y: string) string
+{
+    return x + y;
+}
+
+def foo(x: string, y: string, z:string) string
+{
+    return x + y + z;
+}
+
+print foo(1, 2);
+print foo(1, 2, 3);
+print foo("a", "b");
+print foo("a", "b", "c");
+
+var foo: num = 1;
+print foo(foo, foo);

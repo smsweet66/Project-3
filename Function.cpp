@@ -74,7 +74,14 @@ std::string Function::run(std::vector<Variable> parameterValues) const
 		{
 			logger.log("Returning from function " + name);
 			GlobalInfo::decreaseScope();
-			return resultSubstrings[1];
+			Variable result = Variable(resultSubstrings[1]);
+			if(result.getType() == returnType)
+				return resultSubstrings[1];
+			else
+			{
+				logger.error("Returned value of type " + result.getType() + " does not match function return type " + returnType);
+				exit(1);
+			}
 		}
 		else if(resultSubstrings.size() == 1 && resultSubstrings[0] == "return")
 		{

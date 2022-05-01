@@ -19,7 +19,7 @@ public:
 	Variable(const Variable &other) = default;
 
 	// Used for creating an anonymous variable
-	Variable(std::string line);
+	explicit Variable(std::string line);
 
 	// Used for creating a named variable
 	Variable(std::string name, const std::string& type, std::string value);
@@ -27,15 +27,10 @@ public:
 	[[nodiscard]] std::string getType() const
 	{ return type; }
 
-	std::string toString() const
+	[[nodiscard]] std::string toString() const
 	{ return value; }
 
-	void setValue(std::string &val)
-	{ value = val; }
-
-	std::string getClassVariable(const std::string& varName);
-
-	void setClassVariable(const std::string& varName, std::string newValue);
+	void setValue(std::string &val);
 
 	[[nodiscard]] std::string getName() const
 	{ return name; }

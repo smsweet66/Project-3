@@ -9,7 +9,7 @@ int main(int argc, char** args)
 {
 	Logger mainLogger("main");
 	if(argc != 2)
-		std::cout << "Usage: " << args[0] << " input.txt";
+		std::cout << "Usage: " << args[0] << "testFiles/input.c!";
 
 	std::fstream input(args[1]);
 	if(!input.is_open())
@@ -33,6 +33,9 @@ int main(int argc, char** args)
 	fileText = replaceAll(replaceAll(fileText, "!", " ! "), ", ", " , ");
 	fileText = replaceAll(replaceAll(fileText, "!  =", "!="), "=  =", "==");
 	fileText = replaceAll(replaceAll(fileText, "(", " ( "), ")", " ) ");
+	fileText = replaceAll(replaceAll(fileText, "<", " < "), ">", " > ");
+	fileText = replaceAll(replaceAll(fileText, "<  =", "<="), ">  =", ">=");
+	fileText = replaceAll(replaceAll(fileText, "|", " | "), "|  |", "||");
 
 	mainLogger.log("Parsing file: %s", args[1]);
 	auto lines = lineSplit(fileText);

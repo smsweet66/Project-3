@@ -72,6 +72,24 @@ static std::vector<std::string> split(const std::string& str)
 	return result;
 }
 
+static int getEndParenthesis(const std::string& str, int start)
+{
+	int depth = 1;
+	for(int i = start + 1; i < str.size(); ++i)
+	{
+		if(str[i] == '(')
+			depth++;
+		else if(str[i] == ')')
+		{
+			depth--;
+			if(depth == 0)
+				return i;
+		}
+	}
+
+	return -1;
+}
+
 static std::vector<std::string> lineSplit(const std::string &input)
 {
 	std::vector<std::string> result;
